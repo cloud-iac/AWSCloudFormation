@@ -1,0 +1,207 @@
+#서울 VPC 환경설정
+Resources:
+  #VPC
+  SEVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.1.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: SE_VPC
+  #인터넷게이트웨이
+  SEIGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: SE_IGW
+  #IGW연결
+  EPVPCGWATTACH:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref SE_VPC
+      InternetGatewayId: !Ref SE_IGW
+
+  #서브넷 생성
+  SE_Pub_SN_1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref SE_VPC
+      CidrBlock: 10.1.1.0/24
+      AvailabilityZone: ap-northeast-2a
+      Tags:
+        - Key: Name
+          Value: SE_Pub_SN_1
+  SE_Pub_SN_2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref SE_VPC
+      CidrBlock: 10.1.2.0/24
+      AvailabilityZone: ap-northeast-2c
+      Tags:
+        - Key: Name
+          Value: SE_Pub_SN_2
+  SE_Pri_SN_3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref SE_VPC
+      CidrBlock: 10.1.3.0/24
+      AvailabilityZone: ap-northeast-2a
+      Tags:
+        - Key: Name
+          Value: SE_Pri_SN_3
+  SE_Pri_SN_4:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref SE_VPC
+      CidrBlock: 10.1.4.0/24
+      AvailabilityZone: ap-northeast-2c
+      Tags:
+        - Key: Name
+          Value: SE_Pri_SN_4
+
+  ##라우팅 테이블 생성
+  
+  #퍼블릭 라우팅 테이블
+  SE_Pub_RT_12:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref SE_VPC
+      Tags:
+        - Key: Name
+          Value: SE_Pub_RT_12
+  
+  #프라이빗 라우팅 테이블
+  SE_Pri_RT_3:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref SE_VPC
+      Tags:
+        - Key: Name
+          Value: SE_Pri_RT_3
+  SE_Pri_RT_4:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref SE_VPC
+      Tags:
+        - Key: Name
+          Value: SE_Pri_RT_4
+  
+  #퍼블릭 라우팅 테이블에 서브넷 연결
+  SE_Pub_RT_12_ASS:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SE_Pub_SN_1
+      SubnetId: !Ref SE_Pub_SN_2
+      RouteTableId: !Ref SE_Pub_RT_12
+  
+  #프라이빗 라우팅 테이블에 서브넷 연결
+  SE_Pri_RT_3_ASS:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SE_Pri_SN_3
+      RouteTableId: !Ref SE_Pri_RT_3
+  SE_Pri_RT_4_ASS:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SE_Pri_SN_4
+      RouteTableId: !Ref SE_Pri_RT_4
+  
+  #퍼블릭 라우팅 테이블에 기본경로 설정 (인터넷 게이트웨이 연결)
+  SE_Pub_RT_12_ROUTE:
+    Type: AWS::EC2::Route
+    DependsOn: SE_IGW
+    Properties:
+      RouteTableId: !Ref SE_Pub_RT_12
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref SE_IGW
+  
+  #프라이빗 라우팅 테이블에 인스턴스NAT 연결
+
+
+  #보안그룹(공통 사용)
+  SE_WEB_SG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH, ICMP, HTTP, HTTPS
+      VpcId: !Ref SE_VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: icmp
+          FromPort: 8
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: http
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: https
+          FromPort: 433
+          ToPort: 433
+          CidrIp: 0.0.0.0/0
+  #인스턴스 생성(편의상 루트사용자로 로그인 허용)
+  SE_NAT_EC2_1:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-06af60cca22554104
+      Tags:
+        - Key: Name
+          Value: SE_NAT_EC2_1
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet:
+            - !Ref SE_WEB_SG
+          SubnetId: !Ref SE_Pub_SN_1
+      PrivateIpAddress: "10.1.1.100"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
+          echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+          sysctl -p /etc/sysctl.conf
+          yum install -y iptables-services
+          systemctl start iptables & systemctl enable iptables
+          iptables -F
+          iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+          service iptables save
+  SE_NAT_EC2_2:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-06af60cca22554104
+      Tags:
+        - Key: Name
+          Value: SE_NAT_EC2_2
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          GroupSet:
+            - !Ref SE_WEB_SG
+          SubnetId: !Ref SE_Pub_SN_2
+      PrivateIpAddress: "10.1.2.100"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
+          echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+          sysctl -p /etc/sysctl.conf
+          yum install -y iptables-services
+          systemctl start iptables & systemctl enable iptables
+          iptables -F
+          iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+          service iptables save
+
+

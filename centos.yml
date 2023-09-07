@@ -1,0 +1,64 @@
+Resources:
+  NETIDVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.168.0.0/16
+      Tags:
+        - Key: Name
+          Value: NETID-VPC
+
+  NETIDIGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: NETID-IGW
+
+  NETIDIGWAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref NETIDIGW
+      VpcId: !Ref NETIDVPC
+
+  NETIDPublicSN:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref NETIDVPC
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: 192.168.108.0/24
+      Tags:
+        - Key: Name
+          Value: NETID-Public-SN
+
+  NETIDPublicRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref NETIDVPC
+      Tags:
+        - Key: Name
+          Value: NETID-Public-RT
+
+  NETIDPublicSNRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref NETIDPublicRT
+      SubnetId: !Ref NETIDPublicSN
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: NETIDIGWAttachment
+    Properties:
+      RouteTableId: !Ref NETIDPublicRT
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref NETIDIGW
+
+  NETIDSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SSH, RDP
+      VpcId: !Ref NETIDVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: 0.0.0.0/0
