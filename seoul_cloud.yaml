@@ -1,7 +1,12 @@
 #서울 VPC 환경설정
 Resources:
+  #탄력적IP
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref Nat1
   #VPC
-  SEVPC:
+  SeVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.1.0.0/16
@@ -9,124 +14,132 @@ Resources:
       EnableDnsSupport: true
       Tags:
         - Key: Name
-          Value: SE_VPC
+          Value: SeVPC
   #인터넷게이트웨이
-  SEIGW:
+  SeIGW:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: SE_IGW
+          Value: SeIGW
   #IGW연결
-  EPVPCGWATTACH:
+  SeIGWAttach:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref SE_VPC
-      InternetGatewayId: !Ref SE_IGW
+      VpcId: !Ref SeVPC
+      InternetGatewayId: !Ref SeIGW
 
   #서브넷 생성
-  SE_Pub_SN_1:
+  PubSubNet01:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref SE_VPC
+      VpcId: !Ref SeVPC
       CidrBlock: 10.1.1.0/24
       AvailabilityZone: ap-northeast-2a
       Tags:
         - Key: Name
-          Value: SE_Pub_SN_1
-  SE_Pub_SN_2:
+          Value: PubSubNet01
+  PubSubNet02:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref SE_VPC
+      VpcId: !Ref SeVPC
       CidrBlock: 10.1.2.0/24
       AvailabilityZone: ap-northeast-2c
       Tags:
         - Key: Name
-          Value: SE_Pub_SN_2
-  SE_Pri_SN_3:
+          Value: PubSubNet01
+  PriSubNet03:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref SE_VPC
+      VpcId: !Ref SeVPC
       CidrBlock: 10.1.3.0/24
       AvailabilityZone: ap-northeast-2a
       Tags:
         - Key: Name
-          Value: SE_Pri_SN_3
-  SE_Pri_SN_4:
+          Value: PriSubNet03
+  PriSubNet04:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref SE_VPC
+      VpcId: !Ref SeVPC
       CidrBlock: 10.1.4.0/24
       AvailabilityZone: ap-northeast-2c
       Tags:
         - Key: Name
-          Value: SE_Pri_SN_4
+          Value: PriSubNet04
 
-  ##라우팅 테이블 생성
-  
   #퍼블릭 라우팅 테이블
-  SE_Pub_RT_12:
+  PubRT12:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref SE_VPC
+      VpcId: !Ref SeVPC
       Tags:
         - Key: Name
-          Value: SE_Pub_RT_12
-  
+          Value: PubRT12
+
   #프라이빗 라우팅 테이블
-  SE_Pri_RT_3:
+  PriRT3:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref SE_VPC
+      VpcId: !Ref SeVPC
       Tags:
         - Key: Name
-          Value: SE_Pri_RT_3
-  SE_Pri_RT_4:
+          Value: PriRT3
+  PriRT4:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref SE_VPC
+      VpcId: !Ref SeVPC
       Tags:
         - Key: Name
-          Value: SE_Pri_RT_4
-  
+          Value: PriRT4
+
   #퍼블릭 라우팅 테이블에 서브넷 연결
-  SE_Pub_RT_12_ASS:
+  PubRouteTableAccSN1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref SE_Pub_SN_1
-      SubnetId: !Ref SE_Pub_SN_2
-      RouteTableId: !Ref SE_Pub_RT_12
-  
+      SubnetId: !Ref PubSubNet01
+      RouteTableId: !Ref PubRT12
+
+  PubRouteTableAccSN2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PubSubNet02
+      RouteTableId: !Ref PubRT12
+
   #프라이빗 라우팅 테이블에 서브넷 연결
-  SE_Pri_RT_3_ASS:
+  PriRouteTableAccSN3:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref SE_Pri_SN_3
-      RouteTableId: !Ref SE_Pri_RT_3
-  SE_Pri_RT_4_ASS:
+      SubnetId: !Ref PriSubNet03
+      RouteTableId: !Ref PriRT3
+  PriRouteTableAccSN4:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref SE_Pri_SN_4
-      RouteTableId: !Ref SE_Pri_RT_4
-  
+      SubnetId: !Ref PriSubNet04
+      RouteTableId: !Ref PriRT4
+
   #퍼블릭 라우팅 테이블에 기본경로 설정 (인터넷 게이트웨이 연결)
-  SE_Pub_RT_12_ROUTE:
+  PubRoute12:
     Type: AWS::EC2::Route
-    DependsOn: SE_IGW
+    DependsOn: SeIGW
     Properties:
-      RouteTableId: !Ref SE_Pub_RT_12
+      RouteTableId: !Ref PubRT12
       DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref SE_IGW
-  
-  #프라이빗 라우팅 테이블에 인스턴스NAT 연결
+      GatewayId: !Ref SeIGW
 
+  #프라이빗 라우팅 테이블에 NAT1 경로 설정
+  PriRoute3:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PriRT3
+      NetworkInterfaceId: !Ref NatENI01
 
-  #보안그룹(공통 사용)
-  SE_WEB_SG:
+  #보안그룹(Web공통)
+  WebSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: SSH, ICMP, HTTP, HTTPS
-      VpcId: !Ref SE_VPC
+      VpcId: !Ref SeVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
@@ -136,72 +149,120 @@ Resources:
           FromPort: 8
           ToPort: -1
           CidrIp: 0.0.0.0/0
-        - IpProtocol: http
+        - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-        - IpProtocol: https
+        - IpProtocol: tcp
           FromPort: 433
           ToPort: 433
           CidrIp: 0.0.0.0/0
+
+  #보안그룹(ALB-80,433)
+  ALBSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: HTTP, HTTPS
+      VpcId: !Ref SeVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 433
+          ToPort: 433
+          CidrIp: 0.0.0.0/0
+
   #인스턴스 생성(편의상 루트사용자로 로그인 허용)
-  SE_NAT_EC2_1:
+  Nat1:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.micro
-      ImageId: ami-06af60cca22554104
+      ImageId: ami-084e92d3e117f7692
       Tags:
         - Key: Name
-          Value: SE_NAT_EC2_1
+          Value: Nat1
       NetworkInterfaces:
-        - AssociatePublicIpAddress: true
-          DeviceIndex: 0
+        - NetworkInterfaceId: !Ref NatENI01
+          DeviceIndex: "0"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
+          sudo yum install iptables-services
+          sudo sysctl -w net.ipv4.ip_forward=1
+          sudo /sbin/iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+          sudo service iptables save
+          sudo reboot
+
+  # SENATEC22:
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     InstanceType: t2.micro
+  #     ImageId: ami-084e92d3e117f7692
+  #     Tags:
+  #       - Key: Name
+  #         Value: SENATEC22
+  #     NetworkInterfaces:
+  #       - AssociatePublicIpAddress: true
+  #         DeviceIndex: "0"
+  #         GroupSet:
+  #           - !Ref SEWEBSG
+  #         SubnetId: !Ref SEPubSN2
+  #         PrivateIpAddress: "10.1.2.100"
+  #     UserData:
+  #       Fn::Base64: !Sub |
+  #         #!/bin/bash
+  #         echo "p@ssw0rd" | passwd --stdin root
+  #         sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
+  #         sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+  #         systemctl restart sshd
+  #         echo "net.ipv4.ipforward=1" >> /etc/sysctl.conf
+  #         sysctl -p /etc/sysctl.conf
+  #         yum install -y iptables-services
+  #         systemctl start iptables & systemctl enable iptables
+  #         iptables -F
+  #         iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+  #         service iptables save
+  Web3:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-084e92d3e117f7692
+      Tags:
+        - Key: Name
+          Value: Web3
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: false
+          DeviceIndex: "0"
           GroupSet:
-            - !Ref SE_WEB_SG
-          SubnetId: !Ref SE_Pub_SN_1
+            - !Ref WebSG
+          SubnetId: !Ref PriSubNet03
+          PrivateIpAddress: "10.1.3.100"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
+
+  NatENI01:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !Ref PubSubNet01
+      GroupSet:
+        - !Ref WebSG
       PrivateIpAddress: "10.1.1.100"
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          echo "p@ssw0rd" | passwd --stdin root
-          sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
-          sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
-          systemctl restart sshd
-          echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
-          sysctl -p /etc/sysctl.conf
-          yum install -y iptables-services
-          systemctl start iptables & systemctl enable iptables
-          iptables -F
-          iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-          service iptables save
-  SE_NAT_EC2_2:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: t2.micro
-      ImageId: ami-06af60cca22554104
-      Tags:
-        - Key: Name
-          Value: SE_NAT_EC2_2
-      NetworkInterfaces:
-        - AssociatePublicIpAddress: true
-          DeviceIndex: 0
-          GroupSet:
-            - !Ref SE_WEB_SG
-          SubnetId: !Ref SE_Pub_SN_2
-      PrivateIpAddress: "10.1.2.100"
-      UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash
-          echo "p@ssw0rd" | passwd --stdin root
-          sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
-          sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
-          systemctl restart sshd
-          echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
-          sysctl -p /etc/sysctl.conf
-          yum install -y iptables-services
-          systemctl start iptables & systemctl enable iptables
-          iptables -F
-          iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-          service iptables save
+      SourceDestCheck: false
 
-
+  # NetworkInterfaceAttachment:
+  #   Type: AWS::EC2::NetworkInterfaceAttachment
+  #   Properties:
+  #     InstanceId: !Ref SENATEC21
+  #     NetworkInterfaceId: !Ref SENATEC21Interface
+  #     DeviceIndex: 1
