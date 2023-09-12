@@ -1,10 +1,14 @@
 #서울 VPC 환경설정
 Resources:
   #탄력적IP
-  EIP:
+  EIP1:
     Type: AWS::EC2::EIP
     Properties:
       InstanceId: !Ref Nat1
+  EIP2:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref Nat2
   #VPC
   SeVPC:
     Type: AWS::EC2::VPC
@@ -126,13 +130,19 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref SeIGW
 
-  #프라이빗 라우팅 테이블에 NAT1 경로 설정
+  #프라이빗 라우팅 테이블에 NAT Instance 경로 설정
   PriRoute3:
     Type: AWS::EC2::Route
     Properties:
       DestinationCidrBlock: 0.0.0.0/0
       RouteTableId: !Ref PriRT3
       NetworkInterfaceId: !Ref NatENI01
+  PriRoute4:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PriRT4
+      NetworkInterfaceId: !Ref NatENI02
 
   #보안그룹(Web공통)
   WebSG:
@@ -193,41 +203,40 @@ Resources:
           sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
           sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
           systemctl restart sshd
-          sudo yum install iptables-services
-          sudo sysctl -w net.ipv4.ip_forward=1
-          sudo /sbin/iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-          sudo service iptables save
-          sudo reboot
+          echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+          sysctl -p /etc/sysctl.conf
+          yum install -y iptables-services
+          systemctl start iptables & systemctl enable iptables
+          iptables -F
+          iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+          service iptables save
 
-  # SENATEC22:
-  #   Type: AWS::EC2::Instance
-  #   Properties:
-  #     InstanceType: t2.micro
-  #     ImageId: ami-084e92d3e117f7692
-  #     Tags:
-  #       - Key: Name
-  #         Value: SENATEC22
-  #     NetworkInterfaces:
-  #       - AssociatePublicIpAddress: true
-  #         DeviceIndex: "0"
-  #         GroupSet:
-  #           - !Ref SEWEBSG
-  #         SubnetId: !Ref SEPubSN2
-  #         PrivateIpAddress: "10.1.2.100"
-  #     UserData:
-  #       Fn::Base64: !Sub |
-  #         #!/bin/bash
-  #         echo "p@ssw0rd" | passwd --stdin root
-  #         sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
-  #         sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
-  #         systemctl restart sshd
-  #         echo "net.ipv4.ipforward=1" >> /etc/sysctl.conf
-  #         sysctl -p /etc/sysctl.conf
-  #         yum install -y iptables-services
-  #         systemctl start iptables & systemctl enable iptables
-  #         iptables -F
-  #         iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-  #         service iptables save
+  Nat2:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-084e92d3e117f7692
+      Tags:
+        - Key: Name
+          Value: Nat2
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref NatENI02
+          DeviceIndex: "0"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
+          echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+          sysctl -p /etc/sysctl.conf
+          yum install -y iptables-services
+          systemctl start iptables & systemctl enable iptables
+          iptables -F
+          iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+          service iptables save
+
   Web3:
     Type: AWS::EC2::Instance
     Properties:
@@ -250,7 +259,29 @@ Resources:
           sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
           sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
           systemctl restart sshd
-
+  Web4:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-084e92d3e117f7692
+      Tags:
+        - Key: Name
+          Value: Web4
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: false
+          DeviceIndex: "0"
+          GroupSet:
+            - !Ref WebSG
+          SubnetId: !Ref PriSubNet04
+          PrivateIpAddress: "10.1.4.100"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
+      
   NatENI01:
     Type: AWS::EC2::NetworkInterface
     Properties:
@@ -259,10 +290,13 @@ Resources:
         - !Ref WebSG
       PrivateIpAddress: "10.1.1.100"
       SourceDestCheck: false
+  NatENI02:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !Ref PubSubNet02
+      GroupSet:
+        - !Ref WebSG
+      PrivateIpAddress: "10.1.2.100"
+      SourceDestCheck: false
 
-  # NetworkInterfaceAttachment:
-  #   Type: AWS::EC2::NetworkInterfaceAttachment
-  #   Properties:
-  #     InstanceId: !Ref SENATEC21
-  #     NetworkInterfaceId: !Ref SENATEC21Interface
-  #     DeviceIndex: 1
+  
