@@ -9,8 +9,7 @@ net.ipv4.conf.all.send_redirects = 0
 EOF
 sysctl -p /etc/sysctl.conf
 
-printf "고객게이트웨이 IP:"
-read leftid
+leftid=$(https://checkip.amazonaws.com/)
 
 printf "vpn 터널1 ip:"
 read right
