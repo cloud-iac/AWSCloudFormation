@@ -1,0 +1,51 @@
+---
+  AWSTemplateFormatVersion: "2023-09-13"
+  
+  Description: "Seoul Cloud VPC"
+  
+  Parameters:
+    KeyName:
+      Type: AWS::EC2::KeyPair::KeyName
+    AMI:
+      Type: AWS::EC2::Image::Id
+      Default: ami-0fd0765afb77bcca7
+  
+  Mappings:
+    SubnetConfig:
+    VPC:
+      CIDR: "10.1.0.0/16"
+    Public0:
+      CIDR: "10.1.1.0/16"
+    Public1:
+      CIDR: "10.1.2.0/16"
+    Private3:
+      CIDR: "10.1.3.0/16"
+    Private4:
+      CIDR: "10.1.4.0/16"
+  
+  AZRegions:
+    AZs: ["a", "c"]
+  
+  Resources: 
+    
+    VPC:
+      Type: "AWS::EC2::VPC"
+      Properties:
+        EnableDnsSupport: "true"
+        EnableDnsHostnames: "true"
+        CidrBlock:
+          Fn::FindInMap:
+            - "SubnetConfig"
+            - "VPC"
+            - "CIDR"
+        Tags:
+          -
+            Key: "Name"
+            Value: "Seoul-VPC"
+    InternetGateway:
+      Type: AWS::EC2::InternetGateway
+      Properties:
+      Tags:
+        - Key: Name
+          Value: 
+

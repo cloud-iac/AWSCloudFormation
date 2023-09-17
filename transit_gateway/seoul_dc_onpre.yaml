@@ -1,0 +1,192 @@
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources:
+  # Seoul VPC On premiss
+  Kr11VPC2:
+    Type: AWS::EC2::VPC
+    Properties:
+     CidrBlock: 10.2.0.0/16
+     EnableDnsSupport: true
+     EnableDnsHostnames: true
+     Tags:
+      - Key: Name
+        Value: VPC2
+
+  VPC2IGW:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: VPC2-IGW
+
+  VPC2IGWAtt:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref VPC2IGW
+      VpcId: !Ref VPC2
+
+  VPC2PubSN1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC2
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: 10.2.1.0/24
+      MapPublicIpOnLaunch: True
+      Tags:
+        - Key: Name
+          Value: VPC2-Pub-SN1
+
+  VPC2PriSN2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC2
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: 10.2.2.0/24
+      Tags:
+        - Key: Name
+          Value: VPC2-Pri-SN2
+
+  VPC2PubRT1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC2
+      Tags:
+        - Key: Name
+          Value: VPC2-Pub-RT1
+
+  VPC2PubSN1RT1Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VPC2PubRT1
+      SubnetId: !Ref VPC2PubSN1
+
+  VPC2PubRT1Route1:
+    Type: AWS::EC2::Route
+    DependsOn: VPC2IGWAtt
+    Properties:
+      RouteTableId: !Ref VPC2PubRT1
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref VPC2IGW
+
+  VPC2PriRT2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC2
+      Tags:
+        - Key: Name
+          Value: VPC2-Pri-RT2
+
+  VPC2PriSN2RT2Ass:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VPC2PriRT2
+      SubnetId: !Ref VPC2PriSN2
+
+  VPC2PriRT2Route1:
+    Type: AWS::EC2::Route
+    DependsOn: VPC2CGW
+    Properties:
+      RouteTableId: !Ref VPC2PriRT2
+      DestinationCidrBlock: 0.0.0.0/0
+      InstanceId: !Ref VPC2CGW
+
+  VPC2CGWSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC2
+      GroupDescription: VPC2-CGW-SG
+      Tags:
+      - Key : Name
+        Value : VPC2-CGW-SG
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: icmp
+        FromPort: -1
+        ToPort: -1
+        CidrIp: 10.0.0.0/8
+      - IpProtocol: -1
+        CidrIp: 10.2.2.0/24
+
+  VPC2DBSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC2
+      GroupDescription: VPC2-DB-SG
+      Tags:
+      - Key : Name
+        Value : VPC2-DB-SG
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 10.2.1.100/32
+      - IpProtocol: icmp
+        FromPort: -1
+        ToPort: -1
+        CidrIp: 10.0.0.0/8
+
+  VPC2CGWENI:
+   Type: AWS::EC2::NetworkInterface
+   Properties:
+       SubnetId: !Ref VPC2PubSN1
+       Description: VPC2-CGW eth0
+       GroupSet:
+       - !Ref VPC2CGWSG
+       PrivateIpAddress: 10.2.1.100
+       SourceDestCheck: false
+       Tags:
+           - Key: Name
+             Value: VPC2-CGW-ENI
+
+  VPC2CGW:
+   Type: AWS::EC2::Instance
+   Properties:
+     ImageId: ami-084e92d3e117f7692
+     InstanceType: t2.micro
+     KeyName: !Ref KeyName
+     Tags:
+       - Key: Name
+         Value: VPC2-CGW
+     NetworkInterfaces:
+       - NetworkInterfaceId: !Ref VPC2CGWENI
+         DeviceIndex: 0
+     UserData:
+       Fn::Base64: |
+          #!/bin/bash
+          echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+          echo "net.ipv4.conf.eth0.send_redirects=0" >> /etc/sysctl.conf
+          sysctl -p /etc/sysctl.conf
+          yum -y install iptables-services
+          systemctl start iptables
+          systemctl enable iptables
+          iptables -F
+          iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+          service iptables save
+
+  VPC2DB:
+    Type: AWS::EC2::Instance
+    DependsOn: VPC2PriRT2Route1
+    Properties:
+      ImageId: ami-084e92d3e117f7692
+      InstanceType: t2.micro
+      Tags:
+        - Key: Name
+          Value: VPC2-DB
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !Ref VPC2PriSN2
+          GroupSet:
+          - !Ref VPC2DBSG
+          PrivateIpAddress: 10.2.2.100
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
