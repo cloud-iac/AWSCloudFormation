@@ -1,3 +1,6 @@
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
 #기본 리소스 자동화 -> VPC, InternetGateway, Subnets, RoutingTables, Security Groups
 #추가 설정은 콘솔에서 -> 경로설정,인바운드규칙, 인증서등록, DNS레코드편집등등 
 Resources:
@@ -175,6 +178,23 @@ Resources:
       RouteTableId: !Ref VPC
       SubnetId: !Ref WorkSpacesSubnetAZc
   
+  #라우팅 테이블에 경로설정
+  PublicRTRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGateway
+    Properties:
+      RouteTableId: !Ref PublicRT
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PrivateRTRoute:
+    Type: AWS::EC2::Route
+    DependsOn: NatInstance
+    Properties:
+      RouteTableId: !Ref PrivateRT
+      DestinationCidrBlock: 0.0.0.0/0
+      InstanceId: !Ref NatInstance
+
+  #보안그룹 생성
   NatInstanceSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -243,8 +263,59 @@ Resources:
   #2개의 인스턴스 생성
   #퍼블릭 서브넷에 NAT인스턴스(Squid)
   #로그인:PemKey, NAT,Proxy: 스크립트다운로드후 실행
+  NatInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0f22ac1c12807aefc
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      Tags:
+        - Key: Name
+          Value: grw-nat-instance
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref NatInstanceENI
+          DeviceIndex: 0
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          curl -o /root/setup.sh 
+          chmod +x /root/setup.sh 
 
+  NATInstanceENI:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !Ref PublicSubnetAZa
+      Description: NAT-Instance eth0
+      GroupSet:
+        - !Ref NatInstanceSG
+        PrivateIpAddress: 10.0.1.100
+        SourceDestCheck: false
+        Tags:
+          - Key: Name
+            Value: grw-nat-instance-eni
   
   #프라이빗 서브넷에 내부시스템 인스턴스
   #로그인:id,password Webserver: 스크립트다운로드후 실행
-
+  VPC2CGW:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0f22ac1c12807aefc
+      InstanceType: t2.micro
+      Tags:
+        - Key: Name
+          Value: grw-inner-system
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !Ref PrivateSubnetAZa
+          GroupSet:
+          - !Ref InnerSystemSG
+          PrivateIpAddress: "10.0.3.100"
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          echo "p@ssw0rd" | passwd --stdin root
+          sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
+          sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
+          systemctl restart sshd
+          curl -o /root/setup.sh 
+          chmod +x /root/setup.sh
