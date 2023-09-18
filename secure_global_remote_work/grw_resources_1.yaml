@@ -278,7 +278,7 @@ Resources:
       UserData:
         Fn::Base64: |
           #!/bin/bash
-          curl -o /root/setup.sh 
+          curl -o /root/setup.sh https://raw.githubusercontent.com/w-ryan-jung/AWSCloudFormation/main/secure_global_remote_work/ec2_setup/nat_instance_setup.sh
           chmod +x /root/setup.sh 
 
   NATInstanceENI:
@@ -317,5 +317,5 @@ Resources:
           sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
           sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
           systemctl restart sshd
-          curl -o /root/setup.sh 
+          curl -o /root/setup.sh https://raw.githubusercontent.com/w-ryan-jung/AWSCloudFormation/main/secure_global_remote_work/ec2_setup/inner_system_setup.sh
           chmod +x /root/setup.sh
