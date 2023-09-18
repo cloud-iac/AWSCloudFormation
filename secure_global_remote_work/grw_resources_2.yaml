@@ -1,18 +1,18 @@
 Parameters:
   GRWPrivateSubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-    Description: Select two subnets grw-pri-sb-az-a and grw-pri-sb-az-c
+    Description: grw-pri-sb-az-a, grw-pri-sb-az-c 서브넷선택
 
   GRWVpcId:
     Type: AWS::EC2::VPC::Id
-    Description: Select a grw-vpc
+    Description: grw-vpc 선택
 
 Resources:
   GRWDirectory:
     Type: AWS::DirectoryService::MicrosoftAD
     Properties:
       Name: "lundaljung.com"
-      Password: "P@ssword"
+      Password: "P@ssw0rd"
       ShortName: "CloudStudy"
       Edition: Standard
       VpcSettings:

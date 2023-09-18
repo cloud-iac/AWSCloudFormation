@@ -1,17 +1,19 @@
 Parameters:
   DirectoryId:
     Type: String
-    Description: Enter the AWS Directory Service Directory ID
+    Description: Enter Diretory ID
   DnsServer1:
     Type: String
-    Description: Enter DNSServer from Directory Service
+    Description: Enter DNS Server
   DnsServer2:
     Type: String
-    Description: Enter DNSServer from Directory Service
+    Description: Enter DNS Server
   ServerCertificateArn:
     Type: String
-    Description: Enter the ARN of the IAM Server Certificate for your application
-
+    Description: Enter Server Certificate ARN
+  TargetNetwork:
+    Type: String
+    Description: Enter "grw-vpn-sb-az-a" Subnet id
 Resources:
   GRWClientVpnEndpoint:
     Type: AWS::EC2::ClientVpnEndpoint
@@ -34,3 +36,9 @@ Resources:
             - Key: "Name"
               Value: "gre-vpn-ep"
       TransportProtocol: "udp"
+
+  GRWClientVpnTargetNetworkAssociation:
+    Type: "AWS::EC2::ClientVpnTargetNetworkAssociation"
+    Properties:
+      ClientVpnEndpointId: !Ref GRWClientVpnEndpoint
+      SubnetId: !Ref TargetNetwork
