@@ -1,0 +1,250 @@
+#기본 리소스 자동화 -> VPC, InternetGateway, Subnets, RoutingTables, Security Groups
+#추가 설정은 콘솔에서 -> 경로설정,인바운드규칙, 인증서등록, DNS레코드편집등등 
+Resources:
+  #VPC생성
+  VPC:
+    Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: "10.0.0.0/16"
+        EnableDnsSupport: true
+        EnableDnsHostnames: ture
+        Tags:
+          - Key: Name
+            Value: grw-vpc
+  #인터넷 게이트웨이 생성
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+      Properties:
+        Tags:
+          - Key: Name
+            Value: grw-igw
+  
+  #인터넷 게이트웨이 연결
+  VPCGatewayAttach:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+  
+  #서브넷 생성 (퍼블릭,프라이빗,VPN,워크스페이트 각각 AZa-c로)
+  PublicSubnetAZa:
+    Type: AWS::EC2::Subnet
+      Properties:
+        VpcId: !Ref VPC
+        AvailabilityZone: !Select [ 0, !GetAZs '' ]
+        CidrBlock: 10.0.1.0/24
+        Tags:
+          - Key: Name
+            Value: grw-pub-sb-az-a
+  PublicSubnetAZc:
+    Type: AWS::EC2::Subnet
+        Properties:
+          VpcId: !Ref VPC
+          AvailabilityZone: !Select [ 2, !GetAZs '' ]
+          CidrBlock: 10.0.2.0/24
+          Tags:
+            - Key: Name
+              Value: grw-pub-sb-az-c
+  PrivateSubnetAZa:
+    Type: AWS::EC2::Subnet
+          Properties:
+            VpcId: !Ref VPC
+            AvailabilityZone: !Select [ 0, !GetAZs '' ]
+            CidrBlock: 10.0.3.0/24
+            Tags:
+              - Key: Name
+                Value: grw-pri-sb-az-a
+  PrivateSubnetAZc:
+    Type: AWS::EC2::Subnet
+            Properties:
+              VpcId: !Ref VPC
+              AvailabilityZone: !Select [ 2, !GetAZs '' ]
+              CidrBlock: 10.0.4.0/24
+              Tags:
+                - Key: Name
+                  Value: grw-pri-sb-az-c
+  VPNSubnetAZa:
+    Type: AWS::EC2::Subnet
+              Properties:
+                VpcId: !Ref VPC
+                AvailabilityZone: !Select [ 0, !GetAZs '' ]
+                CidrBlock: 10.0.100.0/24
+                Tags:
+                  - Key: Name
+                    Value: grw-vpn-sb-az-a
+  VPNSubnetAZc:
+    Type: AWS::EC2::Subnet
+                Properties:
+                  VpcId: !Ref VPC
+                  AvailabilityZone: !Select [ 2, !GetAZs '' ]
+                  CidrBlock: 10.0.101.0/24
+                  Tags:
+                    - Key: Name
+                      Value: grw-vpn-sb-az-c
+  WorkSpacesSubnetAZa:
+    Type: AWS::EC2::Subnet
+                  Properties:
+                    VpcId: !Ref VPC
+                    AvailabilityZone: !Select [ 0, !GetAZs '' ]
+                    CidrBlock: 10.0.200.0/24
+                    Tags:
+                      - Key: Name
+                        Value: grw-workspaces-sb-az-a
+  WorkSpacesSubnetAZc:
+      Type: AWS::EC2::Subnet
+                  Properties:
+                    VpcId: !Ref VPC
+                    AvailabilityZone: !Select [ 2, !GetAZs '' ]
+                    CidrBlock: 10.0.201.0/24
+                    Tags:
+                      - Key: Name
+                        Value: grw-workspaces-sb-az-c
+  
+  #각각의 서브넷에 라우팅테이블 생성
+  PublicRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: grw-pub-rt
+  PrivateRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: grw-pri-rt
+  VpnRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: grw-vpn-rt
+  WorkSpacesRT:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: grw-workspaces-rt
+  
+  #라우팅테이블에 서브넷 연결
+  PublicRTAccociattionAZa:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VPC
+      SubnetId: !Ref PublicSubnetAZa:
+  PublicRTAccociattionAZc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VPC
+      SubnetId: !Ref PublicSubnetAZc
+  
+  PrivateRTAccociattionAZa:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VPC
+      SubnetId: !Ref PrivateSubnetAZa
+  PrivateRTAccociattionAZc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VPC
+      SubnetId: !Ref PrivateSubnetAZc
+
+  VpnRTAccociattionAZa:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VPC
+      SubnetId: !Ref VPNSubnetAZa
+  VpnRTAccociattionAZc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VPC
+      SubnetId: !Ref VPNSubnetAZc
+
+  WorkSpacesRTAccociattionAZa:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VPC
+      SubnetId: !Ref WorkSpacesSubnetAZa
+  WorkSpacesRTAccociattionAZc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref VPC
+      SubnetId: !Ref WorkSpacesSubnetAZc
+  
+  NatInstanceSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: "ssh, icmp, http, https"
+      Tags:
+      - Key : Name
+        Value : grw-nat-sg
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: icmp
+        FromPort: -1
+        ToPort: -1
+        CidrIp: 10.0.0.0/16
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
+  VpnSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: "http, https"
+      Tags:
+      - Key : Name
+        Value : grw-vpn-sg
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
+  
+  InnerSystemSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: "http, https, ssh"
+      Tags:
+      - Key : Name
+        Value : grw-vpn-sg
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 10.0.200.0/23
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 10.0.200.0/23
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 10.0.1.100/32
+  
+  #2개의 인스턴스 생성
+  #퍼블릭 서브넷에 NAT인스턴스(Squid)
+  #로그인:PemKey, NAT,Proxy: 스크립트다운로드후 실행
+
+  
+  #프라이빗 서브넷에 내부시스템 인스턴스
+  #로그인:id,password Webserver: 스크립트다운로드후 실행
+
