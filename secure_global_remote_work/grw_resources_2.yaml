@@ -1,0 +1,13 @@
+Resources:
+  GRWDirectory: 
+  Type: AWS::DirectoryService::MicrosoftAD
+  Properties: 
+    Name: "lundaljung.com"
+    Password: "P@ssword"
+    ShortName: "cloud.study.ludaljnug"
+    VpcSettings: 
+      SubnetIds: 
+        - Ref: grw-pri-sb-az-a
+        - Ref: grw-pri-sb-az-c
+      VpcId: 
+        Ref: grw-vpc

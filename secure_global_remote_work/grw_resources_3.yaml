@@ -1,0 +1,22 @@
+Resources:
+  GRWClientVpnEndpoint:
+  Type: AWS::EC2::ClientVpnEndpoint
+  Properties: 
+    AuthenticationOptions:
+    - Type: "directory-service-authentication"
+      ActiveDirectory:
+        DirectoryId: d-926example #<<< 디렉터리ID
+    ClientCidrBlock: "172.16.0.0/16"
+    ConnectionLogOptions: 
+      Enabled: false
+    Description: "GRW Client VPN Endpoint"
+    DnsServers: 
+      - "1" #<<< AD dns1
+      - "2" #<<< Ad dns2
+    ServerCertificateArn: "" #<<< 인증서
+    TagSpecifications:
+      - ResourceType: "client-vpn-endpoint"
+        Tags:
+        - Key: "Name"
+          Value: "gre-vpn-ep"
+    TransportProtocol: "udp"
