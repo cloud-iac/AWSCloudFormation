@@ -1,22 +1,36 @@
+Parameters:
+  DirectoryId:
+    Type: String
+    Description: Enter the AWS Directory Service Directory ID
+  DnsServer1:
+    Type: String
+    Description: Enter DNSServer from Directory Service
+  DnsServer2:
+    Type: String
+    Description: Enter DNSServer from Directory Service
+  ServerCertificateArn:
+    Type: String
+    Description: Enter the ARN of the IAM Server Certificate for your application
+
 Resources:
   GRWClientVpnEndpoint:
-  Type: AWS::EC2::ClientVpnEndpoint
-  Properties: 
-    AuthenticationOptions:
-    - Type: "directory-service-authentication"
-      ActiveDirectory:
-        DirectoryId: d-926example #<<< 디렉터리ID
-    ClientCidrBlock: "172.16.0.0/16"
-    ConnectionLogOptions: 
-      Enabled: false
-    Description: "GRW Client VPN Endpoint"
-    DnsServers: 
-      - "1" #<<< AD dns1
-      - "2" #<<< Ad dns2
-    ServerCertificateArn: "" #<<< 인증서
-    TagSpecifications:
-      - ResourceType: "client-vpn-endpoint"
-        Tags:
-        - Key: "Name"
-          Value: "gre-vpn-ep"
-    TransportProtocol: "udp"
+    Type: AWS::EC2::ClientVpnEndpoint
+    Properties:
+      AuthenticationOptions:
+        - Type: "directory-service-authentication"
+          ActiveDirectory:
+            DirectoryId: !Ref DirectoryId
+      ClientCidrBlock: "172.16.0.0/16"
+      ConnectionLogOptions:
+        Enabled: false
+      Description: "GRW Client VPN Endpoint"
+      DnsServers:
+        - !Ref DnsServer1
+        - !Ref DnsServer2 # Use DnsServer2 instead of DnsServer1 here
+      ServerCertificateArn: !Ref ServerCertificateArn
+      TagSpecifications:
+        - ResourceType: "client-vpn-endpoint"
+          Tags:
+            - Key: "Name"
+              Value: "gre-vpn-ep"
+      TransportProtocol: "udp"
