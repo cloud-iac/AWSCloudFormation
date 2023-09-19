@@ -1,0 +1,47 @@
+<style>
+  /* 움직이는 텍스트 */
+  .animated-title {
+    font-size: 60px;
+    font-family: "Raleway", Sans-serif;
+    font-weight: 300;
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    padding: 100px 0;
+    overflow-x: hidden;
+    overflow-y: hidden;
+  }
+  .animated-title .track {
+    position: absolute;
+    white-space: nowrap;
+    will-change: transform;
+    animation: marquee 30s linear infinite;
+  }
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @media (hover: hover) and (min-width: 700px) {
+    .animated-title .content {
+      -webkit-transform: translateY(calc(100% - 8rem));
+      transform: translateY(calc(100% - 8rem));
+    }
+  }
+</style>
+
+<div class="animated-title">
+  <div class="track">
+    <div class="content">
+      &nbsp;어서와 내부시스템은 처음이지? &nbsp;Welcome our inner sytem!
+      &nbsp;どうぞ！いらっしゃい！内部のシステムです！ &nbsp;Hej! hej valkommen
+      &nbsp;어서와 내부시스템은 처음이지? &nbsp;Welcome our inner sytem!
+      &nbsp;どうぞ！いらっしゃい！内部のシステムです！ &nbsp;Hej! hej
+      valkommen&nbsp;
+    </div>
+  </div>
+</div>

@@ -1,3 +1,5 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Builing step 3 for Global Remote Work
 Parameters:
   DirectoryId:
     Type: String
@@ -11,9 +13,15 @@ Parameters:
   ServerCertificateArn:
     Type: String
     Description: Enter Server Certificate ARN
+  SecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Select grw-vpn-sg
   TargetNetwork:
-    Type: String
-    Description: Enter "grw-vpn-sb-az-a" Subnet id
+    Type: AWS::EC2::Subnet::Id
+    Description: Select grw-vpn-sb-az-a
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select grw-vpc
 Resources:
   GRWClientVpnEndpoint:
     Type: AWS::EC2::ClientVpnEndpoint
@@ -23,22 +31,50 @@ Resources:
           ActiveDirectory:
             DirectoryId: !Ref DirectoryId
       ClientCidrBlock: "172.16.0.0/16"
+      SecurityGroupIds:
+        - !Ref SecurityGroupId
       ConnectionLogOptions:
         Enabled: false
       Description: "GRW Client VPN Endpoint"
       DnsServers:
         - !Ref DnsServer1
-        - !Ref DnsServer2 # Use DnsServer2 instead of DnsServer1 here
+        - !Ref DnsServer2
       ServerCertificateArn: !Ref ServerCertificateArn
       TagSpecifications:
         - ResourceType: "client-vpn-endpoint"
           Tags:
             - Key: "Name"
-              Value: "gre-vpn-ep"
+              Value: "grw-vpn-ep"
       TransportProtocol: "udp"
+      VpcId: !Ref VpcId
 
   GRWClientVpnTargetNetworkAssociation:
     Type: "AWS::EC2::ClientVpnTargetNetworkAssociation"
     Properties:
       ClientVpnEndpointId: !Ref GRWClientVpnEndpoint
       SubnetId: !Ref TargetNetwork
+  
+  AuthRuleAll:
+    Type: "AWS::EC2::ClientVpnAuthorizationRule"
+    Properties:
+      ClientVpnEndpointId: !Ref GRWClientVpnEndpoint
+      AuthorizeAllGroups: true
+      TargetNetworkCidr: "0.0.0.0/0"
+      Description: "AuthRuleAll"
+  
+  AuthRuleVPC:
+    Type: "AWS::EC2::ClientVpnAuthorizationRule"
+    Properties:
+      ClientVpnEndpointId: !Ref GRWClientVpnEndpoint
+      AuthorizeAllGroups: true
+      TargetNetworkCidr: "10.0.0.0/16"
+      Description: "AuthRuleVPC"
+  
+  VpnEndpointRoute:
+    Type: "AWS::EC2::ClientVpnRoute"
+    DependsOn: GRWClientVpnTargetNetworkAssociation
+    Properties:
+      ClientVpnEndpointId: !Ref GRWClientVpnEndpoint
+      TargetVpcSubnetId: !Ref TargetNetwork
+      DestinationCidrBlock: "0.0.0.0/0"
+      Description: "VpnEndpointRoute"

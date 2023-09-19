@@ -1,3 +1,6 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Builing step 1 for Global Remote Work 
+
 Parameters:
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
@@ -320,6 +323,7 @@ Resources:
           PrivateIpAddress: 10.0.3.100
       UserData:
         Fn::Base64: |
+          #!/bin/bash
           echo "p@ssw0rd" | passwd --stdin root
           sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g" /etc/ssh/sshd_config
           sed -i "s/^#PermitRootLogin yes/PermitRootLogin yes/g" /etc/ssh/sshd_config
@@ -327,3 +331,4 @@ Resources:
           curl -o /root/setup.sh https://raw.githubusercontent.com/w-ryan-jung/AWSCloudFormation/main/secure_global_remote_work/ec2_setup/inner_system_setup.sh
           chmod +x /root/setup.sh
           bash /root/setup.sh
+          yum update -y

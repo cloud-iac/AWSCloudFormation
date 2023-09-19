@@ -1,18 +1,21 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Builing step 2 for Global Remote Work
+
 Parameters:
   GRWPrivateSubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-    Description: grw-pri-sb-az-a, grw-pri-sb-az-c 서브넷선택
+    Description: Select grw-pri-sb-az-a, grw-pri-sb-az-c
 
   GRWVpcId:
     Type: AWS::EC2::VPC::Id
-    Description: grw-vpc 선택
+    Description: Select grw-vpc
 
 Resources:
   GRWDirectory:
     Type: AWS::DirectoryService::MicrosoftAD
     Properties:
       Name: "lundaljung.com"
-      Password: "P@ssw0rd"
+      Password: "p@ssw0rd"
       ShortName: "CloudStudy"
       Edition: Standard
       VpcSettings:
