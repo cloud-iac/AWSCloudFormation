@@ -409,5 +409,5 @@ Resources:
     Type: AWS::EC2::Route
     Properties:
         RouteTableId: !Ref WorkSpacesRT
-        DestinationCidrBlock: '13.124.247.0./24'
+        DestinationCidrBlock: '13.124.247.0/24'
         NatGatewayId: !Ref NATGateway
