@@ -359,55 +359,55 @@ Resources:
     DependsOn: NATGateway
     Type: AWS::EC2::Route
     Properties:
-        RouteTableId: !Ref WorkSpacesRT
+        RouteTableId: !Ref VpnRT
         DestinationCidrBlock: '13.124.44.166/32'
         NatGatewayId: !Ref NATGateway
   RouteNATGateway2:
     DependsOn: NATGateway
     Type: AWS::EC2::Route
     Properties:
-        RouteTableId: !Ref WorkSpacesRT
+        RouteTableId: !Ref VpnRT
         DestinationCidrBlock: '13.124.203.105/32'
         NatGatewayId: !Ref NATGateway
   RouteNATGateway3:
     DependsOn: NATGateway
     Type: AWS::EC2::Route
     Properties:
-        RouteTableId: !Ref WorkSpacesRT
+        RouteTableId: !Ref VpnRT
         DestinationCidrBlock: '52.78.44.253/32'
         NatGatewayId: !Ref NATGateway
   RouteNATGateway4:
     DependsOn: NATGateway
     Type: AWS::EC2::Route
     Properties:
-        RouteTableId: !Ref WorkSpacesRT
+        RouteTableId: !Ref VpnRT
         DestinationCidrBlock: '52.79.54.102/32'
         NatGatewayId: !Ref NATGateway
   RouteNATGateway5:
       DependsOn: NATGateway
       Type: AWS::EC2::Route
       Properties:
-          RouteTableId: !Ref WorkSpacesRT
+          RouteTableId: !Ref VpnRT
           DestinationCidrBlock: '3.34.37.0/24'
           NatGatewayId: !Ref NATGateway
   RouteNATGateway6:
     DependsOn: NATGateway
     Type: AWS::EC2::Route
     Properties:
-        RouteTableId: !Ref WorkSpacesRT
+        RouteTableId: !Ref VpnRT
         DestinationCidrBlock: '3.34.38.0/24'
         NatGatewayId: !Ref NATGateway
   RouteNATGateway7:
     DependsOn: NATGateway
     Type: AWS::EC2::Route
     Properties:
-        RouteTableId: !Ref WorkSpacesRT
+        RouteTableId: !Ref VpnRT
         DestinationCidrBlock: '3.34.39.0/24'
         NatGatewayId: !Ref NATGateway
   RouteNATGateway8:
     DependsOn: NATGateway
     Type: AWS::EC2::Route
     Properties:
-        RouteTableId: !Ref WorkSpacesRT
+        RouteTableId: !Ref VpnRT
         DestinationCidrBlock: '13.124.247.0/24'
         NatGatewayId: !Ref NATGateway
