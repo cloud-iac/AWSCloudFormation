@@ -204,6 +204,13 @@ Resources:
       RouteTableId: !Ref VpnRT
       DestinationCidrBlock: 0.0.0.0/0
       InstanceId: !Ref NatInstance
+  WorkSpacesRTRoute:
+    Type: AWS::EC2::Route
+    DependsOn: NatInstance
+    Properties:
+      RouteTableId: !Ref WorkSpacesRT
+      DestinationCidrBlock: 0.0.0.0/0
+      InstanceId: !Ref NatInstance
 
   #7. Create Security Groups
   NatInstanceSG:
@@ -332,3 +339,75 @@ Resources:
           chmod +x /root/setup.sh
           bash /root/setup.sh
           yum update -y
+
+
+#################################################
+##### ADD NAT GATEWAY and UPDATE WORKSPACES ROUTE
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+        AllocationId: !GetAtt NATGatewayEIP.AllocationId
+        SubnetId: !Ref PublicSubnetAZa
+        Tags:
+        - Key: Name
+          Value: grw-nat-gw
+  NATGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+        Domain: vpc
+  RouteNATGateway1:
+    DependsOn: NATGateway
+    Type: AWS::EC2::Route
+    Properties:
+        RouteTableId: !Ref WorkSpacesRT
+        DestinationCidrBlock: '13.124.44.166/32'
+        NatGatewayId: !Ref NATGateway
+  RouteNATGateway2:
+    DependsOn: NATGateway
+    Type: AWS::EC2::Route
+    Properties:
+        RouteTableId: !Ref WorkSpacesRT
+        DestinationCidrBlock: '13.124.203.105/32'
+        NatGatewayId: !Ref NATGateway
+  RouteNATGateway3:
+    DependsOn: NATGateway
+    Type: AWS::EC2::Route
+    Properties:
+        RouteTableId: !Ref WorkSpacesRT
+        DestinationCidrBlock: '52.78.44.253/32'
+        NatGatewayId: !Ref NATGateway
+  RouteNATGateway4:
+    DependsOn: NATGateway
+    Type: AWS::EC2::Route
+    Properties:
+        RouteTableId: !Ref WorkSpacesRT
+        DestinationCidrBlock: '52.79.54.102/32'
+        NatGatewayId: !Ref NATGateway
+  RouteNATGateway5:
+      DependsOn: NATGateway
+      Type: AWS::EC2::Route
+      Properties:
+          RouteTableId: !Ref WorkSpacesRT
+          DestinationCidrBlock: '3.34.37.0/24'
+          NatGatewayId: !Ref NATGateway
+  RouteNATGateway6:
+    DependsOn: NATGateway
+    Type: AWS::EC2::Route
+    Properties:
+        RouteTableId: !Ref WorkSpacesRT
+        DestinationCidrBlock: '3.34.38.0/24'
+        NatGatewayId: !Ref NATGateway
+  RouteNATGateway7:
+    DependsOn: NATGateway
+    Type: AWS::EC2::Route
+    Properties:
+        RouteTableId: !Ref WorkSpacesRT
+        DestinationCidrBlock: '3.34.39.0/24'
+        NatGatewayId: !Ref NATGateway
+  RouteNATGateway8:
+    DependsOn: NATGateway
+    Type: AWS::EC2::Route
+    Properties:
+        RouteTableId: !Ref WorkSpacesRT
+        DestinationCidrBlock: '13.124.247.0./24'
+        NatGatewayId: !Ref NATGateway
