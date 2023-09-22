@@ -1,8 +1,8 @@
-# 안전한 원격 근무 환경 구축 가이드
+# AWS로 안전한 원격 근무 환경 구축하기
 
 ![AWS Logo](grw-arch.png)
 
-이 가이드는 AWS (Amazon Web Services)를 사용하여 안전한 원격 근무 환경을 구축하는 단계를 안내합니다. 이 환경은 AWS Client VPN 및 AWS WorkSpaces를 기반으로 합니다.
+이 실습 프로젝트는 AWS (Amazon Web Services)를 사용하여 안전한 원격 근무 환경을 구축하는 단계를 구현합니다. 이 환경은 AWS Client VPN 및 AWS WorkSpaces를 기반으로 합니다.
 
 ## 스텝 1: AWS 콘솔에 로그인하고 리전 선택
 
